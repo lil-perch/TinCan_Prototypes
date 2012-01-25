@@ -39,7 +39,7 @@ Util.init = function (env) {
 };
 
 //Util.prototype.endpoint = "http://localhost:8080/ScormEngineInterface/TCAPI";
-Util.prototype.endpoint = "http://192.168.157.129/ScormEngine/ScormEngineInterface/TCAPI";
+Util.prototype.endpoint = "http://localhost/ScormEngine/ScormEngineInterface/TCAPI";
 Util.prototype.actor = { mbox: ["mailto:auto_tests@example.scorm.com"], name: ["Auto Test Learner"]};
 Util.prototype.verb = "experienced";
 Util.prototype.activity = {id : "http://scorm.com/tincan/autotest/testactivity", definition : { name : 'Tin Can Auto Test Activity' } };
@@ -108,20 +108,28 @@ Util.prototype.request = function (method, url, data, useAuth, expectedStatus, e
         contentLength = data.length;
     }
 
+    var usingIEMode = false;
 
     //Make the request already!
     //Check to see if we should use "IE" mode
     if(window.XDomainRequest){
-        console.log("Using alternate IE mode for communication");
-        var xdr = new XDomainRequest();
+        usingIEMode = true;
+        this.log("Using alternate IE mode for communication");
+
+        //Everything that was on query string goes into form vars
+        var formData = new Array();
+        var qsIndex = url.indexOf('?');
+        if(qsIndex > 0){
+            formData.push(url.substr(qsIndex+1));
+            url = url.substr(0, qsIndex);
+        }
+
+        //Method has to go on querystring, and nothing else
+        url = url + '?method=' + method;
 
         //All requests in this mode are POST
-        xdr.open("POST", this.endpoint + url, true);
-        xdr.contentType = "application/x-www-form-urlencoded";
-
-        //All the headers go into form vars
-        var formData = new Array();
-        formData.push('method=' + method);
+        var xdr = new XDomainRequest();
+        xdr.open("POST", this.endpoint + url);
         
         //Headers
         if(extraHeaders === undefined || extraHeaders['Content-Type'] === undefined){
@@ -131,7 +139,7 @@ Util.prototype.request = function (method, url, data, useAuth, expectedStatus, e
 	        formData.push("Content-Length=" + encodeURIComponent(contentLength));
         }
 	    if (useAuth) {
-	        headerData.push("Authorization=" + encodeURIComponent('Basic ' + Base64.encode('testuser2.autotest@scorm.example.com:password')));
+	        formData.push("Authorization=" + encodeURIComponent('Basic ' + Base64.encode('testuser2.autotest@scorm.example.com:password')));
 	    }
         if(extraHeaders !== null){
             for(var headerName in extraHeaders){
@@ -149,18 +157,18 @@ Util.prototype.request = function (method, url, data, useAuth, expectedStatus, e
 	    	if (expectedStatus !== undefined && expectedStatusText !== undefined && expectedStatus !== null && expectedStatusText !== null) {
 	    		equal(expectedStatus.toString().substr(0,1), '2', expectedStatus.toString() + ' : ' + expectedStatusText, method + ': ' + url + ' (status)');
 	    	}
-	    	callback(xdr);
+	    	callback(xdr, usingIEMode);
 	    };
 	    xdr.onerror = function () {
 	    	if (expectedStatus !== undefined && expectedStatusText !== undefined && expectedStatus !== null && expectedStatusText !== null) {
 	    		notEqual(expectedStatus.toString().substr(0,1), '2', expectedStatus.toString() + ' : ' + expectedStatusText, method + ': ' + url + ' (status)');
 	    	}
-	    	callback(xdr);
+	    	callback(xdr, usingIEMode);
 	    };
 
         //Contact
 	    try {
-	    	xdr.send(data);
+	    	xdr.send(formData.join('&'));
 	    } catch (ex) {
 	    	ok(false, ex.toString());
 	    	console.error(ex.toString());
@@ -472,4 +480,39 @@ Util.prototype.ISODateString = function(d){
       + pad(d.getUTCMinutes())+':'
       + pad(d.getUTCSeconds())+'.'
       + pad(d.getUTCMilliseconds(), 3)+'Z';
+};
+
+
+Util.prototype.DateFromISOString = function(string) {
+    var regexp = "([0-9]{4})(-([0-9]{2})(-([0-9]{2})" +
+        "(T([0-9]{2}):([0-9]{2})(:([0-9]{2})(\.([0-9]+))?)?" +
+        "(Z|(([-+])([0-9]{2}):([0-9]{2})))?)?)?)?";
+    var d = string.match(new RegExp(regexp));
+
+    var offset = 0;
+    var date = new Date(d[1], 0, 1);
+
+    if (d[3]) { date.setMonth(d[3] - 1); }
+    if (d[5]) { date.setDate(d[5]); }
+    if (d[7]) { date.setHours(d[7]); }
+    if (d[8]) { date.setMinutes(d[8]); }
+    if (d[10]) { date.setSeconds(d[10]); }
+    if (d[12]) { date.setMilliseconds(Number("0." + d[12]) * 1000); }
+    if (d[14]) {
+        offset = (Number(d[16]) * 60) + Number(d[17]);
+        offset *= ((d[15] == '-') ? 1 : -1);
+    }
+
+    offset -= date.getTimezoneOffset();
+    time = (Number(date) + (offset * 60 * 1000));
+
+    var dateToReturn = new Date();
+    dateToReturn.setTime(Number(time));
+    return dateToReturn;
+};
+
+Util.prototype.log = function(str){
+    if(console !== undefined){
+        console.log(str);
+    }
 };
