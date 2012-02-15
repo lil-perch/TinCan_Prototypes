@@ -1,5 +1,7 @@
 
 
+.container { padding-bottom: 40px; }
+
 .statement {margin:3px 0;}
 
 .statement table {width:100%;}
@@ -76,3 +78,4 @@ table#courseLocations td.metric {}
 }*/
 
 #TCAPIQueryText { width: 80%; height:10px; }
+

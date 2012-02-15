@@ -1,8 +1,23 @@
 
-var endpoint = Config.endpoint;
-var auth = 'Basic ' + Base64.encode(Config.authUser + ':' + Config.authPassword);
-var firstStored = null;
-var moreStatementsUrl = null;
+var GLOBAL_FIRST_STORED = null;
+var GLOBAL_MORE_STATEMENTS_URL = null;
+var GLOBAL_TC_AUTH = null;
+var GLOBAL_TC_ENDPOINT = null;
+
+function TC_GetAuth(){
+	if(GLOBAL_TC_AUTH == null){
+		GLOBAL_TC_AUTH = 'Basic ' + Base64.encode(Config.authUser + ':' + Config.authPassword);
+	}
+	return GLOBAL_TC_AUTH;
+}
+
+function TC_GetEndpoint(){
+	if(GLOBAL_TC_ENDPOINT == null){
+		GLOBAL_TC_ENDPOINT = Config.endpoint;
+	}
+	return GLOBAL_TC_ENDPOINT;
+}
+
 
 $(document).ready(function(){
 
@@ -171,9 +186,8 @@ function TinCanSearchHelper(){
 	};
 };
 
-function TC_GetAuth(){
-	return auth;
-}
+
+
 
 function TC_SearchStatements(){
 	var helper = new TinCanSearchHelper(); 
@@ -191,37 +205,37 @@ function TC_SearchStatements(){
 	queryObj.instructor = helper.getInstructor();
 	queryObj.limit = 25;
 	
-	var url = endpoint + "statements?" + queryObj.toString();
+	var url = TC_GetEndpoint() + "statements?" + queryObj.toString();
 	$("#TCAPIQueryText").text(url);
 	
 	TC_GetStatements(queryObj, RenderStatements);
 }
 
 function TC_GetMoreStatements(){
-	if (moreStatementsUrl !== null && moreStatementsUrl !== undefined){
-		var url = endpoint + moreStatementsUrl.substr(1);
+	if (GLOBAL_MORE_STATEMENTS_URL !== null && GLOBAL_MORE_STATEMENTS_URL !== undefined){
+		var url = TC_GetEndpoint() + GLOBAL_MORE_STATEMENTS_URL.substr(1);
 		XHR_request(url, "GET", null, TC_GetAuth(), RenderStatements);
 	}
 }
 
 function TC_GetStatements(queryObj, callback){
-	var url = endpoint + "statements?" + queryObj.toString();
+	var url = TC_GetEndpoint() + "statements?" + queryObj.toString();
 	XHR_request(url, "GET", null, TC_GetAuth(), callback);
 }
 
 function TC_GetActivityProfile (activityId, profileKey, callbackFunction) {
-		var url = endpoint + "activities/profile?activityId=<activity ID>&profileId=<profilekey>";
+		var url = TC_GetEndpoint() + "activities/profile?activityId=<activity ID>&profileId=<profilekey>";
 		
 		url = url.replace('<activity ID>',encodeURIComponent(activityId));
 		url = url.replace('<profilekey>',encodeURIComponent(profileKey));
 		
-		XHR_request(url, "GET", null, auth, callbackFunction, true);
+		XHR_request(url, "GET", null, TC_GetAuth(), callbackFunction, true);
 }
 
 function TC_DeleteLRS(){
 
-	var url = endpoint;
-	XHR_request(url, "DELETE", null, auth, function () {
+	var url = TC_GetEndpoint();
+	XHR_request(url, "DELETE", null, TC_GetAuth(), function () {
 		window.location = window.location;
 	});
 }
@@ -276,8 +290,8 @@ function RenderStatements(xhr){
 	
 	var statementsResult = JSON.parse(xhr.responseText);
     var statements = statementsResult.statements;
-    moreStatementsUrl = statementsResult.more;
-    if(moreStatementsUrl === undefined || moreStatementsUrl === null){
+    GLOBAL_MORE_STATEMENTS_URL = statementsResult.more;
+    if(GLOBAL_MORE_STATEMENTS_URL === undefined || GLOBAL_MORE_STATEMENTS_URL === null){
     	$("#showAllStatements").hide();
     }
 	
@@ -289,8 +303,8 @@ function RenderStatements(xhr){
 	var aDate;
 
 	if (statements.length > 0) {
-		if (!firstStored) {
-			firstStored = statements[0].stored;
+		if (!GLOBAL_FIRST_STORED) {
+			GLOBAL_FIRST_STORED = statements[0].stored;
 		}
 	}
 
