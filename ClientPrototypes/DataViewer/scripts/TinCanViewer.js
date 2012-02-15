@@ -4,10 +4,12 @@ var auth = 'Basic ' + Base64.encode(Config.authUser + ':' + Config.authPassword)
 var firstStored = null;
 var moreStatementsUrl = null;
 
-google.load('visualization', '1.0', {'packages':['corechart']});
-
 $(document).ready(function(){
 
+	$.datepicker.setDefaults( {dateFormat: "yy-mm-dd", constrainInput: false} );
+	$( "#since" ).datepicker();
+	$( "#until" ).datepicker()
+	
 	//TC_GetStatements(25,null,null,RenderStatements);
 	TC_SearchStatements();
 	$('#refreshStatements').click(function(){
@@ -34,6 +36,14 @@ $(document).ready(function(){
 			$("#showAdvancedOptions").html(text);
 		});
 	});
+	
+	$("#showQuery").click(function(){
+		$("#TCAPIQuery").toggle('slow', function(){
+			var visible = $("#TCAPIQuery").is(":visible");
+			var text = (visible ? "Hide" : "Show") + " TCAPI Query";
+			$("#showQuery").html(text);
+		});
+	});
 });
 
 TinCanStatementQueryObject = function(){
@@ -49,10 +59,10 @@ TinCanStatementQueryObject = function(){
 	this.sparse = false;
 	this.instructor = null;
 	
-	this.toQueryString = function(){
+	this.toString = function(){
 		var qs = new Array();
 		for(var key in this){
-			if(key == "toQueryString" || this[key] == null){
+			if(key == "toString" || this[key] == null){
 				continue;
 			}
 			var val = this[key];
@@ -68,61 +78,119 @@ TinCanStatementQueryObject = function(){
 function TinCanSearchHelper(){
 	this.getActor = function(){
 		var actor = null;
+		var actorJson = this.getSearchVar("actorJson");
 		var actorEmail = this.getSearchVar("actorEmail");
 		var actorAccount = this.getSearchVar("actorAccount");
 		
-		if(actorEmail != null && actorEmail.length > 0){
-			actor = (actor == null) ? new Object() : actor;
-			actor["mbox"] = ["mailto:"+actorEmail];
+		if(actorJson != null && actorJson.length > 0){
+			actor = JSON.parse(actorJson);
+		} 
+		else {
+			if(actorEmail != null){
+				actor = (actor == null) ? new Object() : actor;
+				actor["mbox"] = ["mailto:"+actorEmail];
+			}
+			
+			if(actorAccount != null){
+				actor = (actor == null) ? new Object() : actor;
+				var accountParts = actorAccount.split("::");
+				actor["account"] = [{"accountServiceHomePage":accountParts[0], "accountName":accountParts[1]}];
+			}
 		}
-		
-		if(actorAccount != null && actorAccount.length > 0){
-			actor = (actor == null) ? new Object() : actor;
-			var accountParts = actorAccount.split("::");
-			actor["account"] = [{"accountServiceHomePage":accountParts[0], "accountName":accountParts[1]}];
-		}
-		
 		return actor;
 	};
 	
 	this.getVerb = function(){
-		var verb = this.getSearchVar("verb");
-		return this.nonEmptyStringOrNull(verb);
+		return this.getSearchVar("verb");
 	};
 	
 	this.getObject = function(){
-		var activityId = this.getActivityId();
-		return (activityId == null) ? null : {"id":activityId};
+		var obj = null;
+		var objectJson = this.getSearchVar("objectJson");
+		if(objectJson != null){
+			obj = JSON.parse(objectJson);
+		} else {
+			var activityId = this.getSearchVar("activityId");
+			if(activityId != null){
+				obj = {"id":activityId};
+			}
+		}
+		return obj;
 	};
 	
-	this.getActivityId = function(){
-		var activityId = this.getSearchVar("activityId");
-		return this.nonEmptyStringOrNull(activityId);
+	this.getRegistration = function(){
+		return this.getSearchVar("registration");
 	};
+	
+	this.getContext = function(){
+		return this.getSearchVarAsBoolean("context", "false");
+	};
+	
+	this.getSince = function(){
+		return this.getSearchVar("since");
+	};
+	
+	this.getUntil = function(){
+		return this.getSearchVar("until");
+	};
+	
+	this.getAuthoritative = function(){
+		return this.getSearchVarAsBoolean("authoritative", "true");
+	};
+	
+	this.getSparse = function(){
+		return this.getSearchVarAsBoolean("sparse", "false");
+	};
+	
+	this.getInstructor = function(){
+		var instructorJson = this.getSearchVar("instructorJson");
+		if(instructorJson != null){
+			return JSON.parse(instructorJson);
+		};
+		return null;
+	};
+	
 	
 	this.nonEmptyStringOrNull = function(str){
 		return (str != null && str.length > 0) ? str : null;
 	};
 	
-	this.getSearchVar = function(searchVarName){
-		return $("#"+searchVarName).val();
+	this.getSearchVar = function(searchVarName, defaultVal){
+		var myVar = $("#"+searchVarName).val();
+		if(myVar == null || myVar.length < 1){
+			return defaultVal;
+		}
+		return myVar;
+	};
+	
+	this.getSearchVarAsBoolean = function(searchVarName, defaultVal){
+		return $("#"+searchVarName).is(":checked");
 	};
 };
+
+function TC_GetAuth(){
+	return auth;
+}
 
 function TC_SearchStatements(){
 	var helper = new TinCanSearchHelper(); 
 	var queryObj = new TinCanStatementQueryObject();
-	
+
 	queryObj.actor = helper.getActor();
 	queryObj.verb = helper.getVerb();
 	queryObj.object = helper.getObject();
+	queryObj.registration = helper.getRegistration();
+	queryObj.context = helper.getContext();
+	queryObj.since = helper.getSince();
+	queryObj.until = helper.getUntil();
+	queryObj.authoritative = helper.getAuthoritative();
+	queryObj.sparse = helper.getSparse();
+	queryObj.instructor = helper.getInstructor();
 	
-	var url = endpoint + "statements?" + queryObj.toQueryString();
-	XHR_request(url, "GET", null, TC_GetAuth(), RenderStatements);
-}
-
-function TC_GetAuth(){
-	return auth;
+	var url = endpoint + "statements?" + queryObj.toString();
+	$("#TCAPIQueryText").text(url);
+	
+	TC_GetStatements(queryObj, RenderStatements);
 }
 
 function TC_GetMoreStatements(){
@@ -132,32 +200,9 @@ function TC_GetMoreStatements(){
 	}
 }
 
-
-function TC_GetStatementsWithinContext (num, verb, activityId, callbackFunction, nextPage) {
-	TC_GetStatements(num, verb, activityId, callbackFunction, nextPage, true);
-}
-
-function TC_GetStatements (num,verb,activityId,callbackFunction, nextPage, isContextActivity) {
-	var url = endpoint + "statements/?sparse=false";
-	if (nextPage && moreStatementsUrl !== null && moreStatementsUrl !== undefined){
-		url = endpoint + moreStatementsUrl.substr(1);
-	} else {
-	    if (num > 0){
-	    	url += "&limit=" + num;
-	    }
-	    if (verb != null){
-	    	url += "&verb=" + verb;
-	    }
-	    if (activityId != null){
-	    	var obj = {id:activityId};
-	    	url += "&object=" + encodeURIComponent(JSON.stringify(obj));
-	    }
-	    if(isContextActivity){
-	    	url += "&context=true";
-	    }
-    }
-
-	XHR_request(url, "GET", null, auth, callbackFunction);
+function TC_GetStatements(queryObj, callback){
+	var url = endpoint + "statements?" + queryObj.toString();
+	XHR_request(url, "GET", null, TC_GetAuth(), callback);
 }
 
 function TC_GetActivityProfile (activityId, profileKey, callbackFunction) {

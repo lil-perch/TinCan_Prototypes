@@ -8,16 +8,15 @@
 		<link rel="stylesheet" href="css/skeleton.css">
 		<link rel="stylesheet" href="css/layout.css">
 		<link rel="stylesheet" href="css/TinCanViewer.css">
-
-		<script type="text/javascript" src="https://www.google.com/jsapi"></script>
-        <script type="text/javascript">
-        	google.load("jquery", "1.6.4");
-		</script>
-		<script src="../config.js"></script>
-		<script src="scripts/tabs.js"></script>
-		<script src="scripts/base64.js"></script>
-		<script src="scripts/TCDriver.js"></script>
-		<script src="scripts/TinCanViewer.js"></script>
+		<link rel="stylesheet" href="css/smoothness/jquery-ui-1.8.17.custom.css">
+		
+        <script type="text/javascript" src="scripts/jquery-1.6.3.min.js"></script>
+        <script type="text/javascript" src="scripts/jquery-ui-1.8.17.custom.min.js"></script>
+		<script type="text/javascript" src="../config.js"></script>
+		<script type="text/javascript" src="scripts/tabs.js"></script>
+		<script type="text/javascript" src="scripts/base64.js"></script>
+		<script type="text/javascript" src="scripts/TCDriver.js"></script>
+		<script type="text/javascript" src="scripts/TinCanViewer.js"></script>
         
     </head>
     
@@ -47,28 +46,38 @@
 								<td><label>Actor Email</label><input id="actorEmail" type="text" placeholder="Email Address"></input></td>
 								<td><label>Verb</label><input id="verb" type="text" placeholder="Verb"></input></td>
 								<td><label>Activity ID</label><input id="activityId" type="text" placeholder="Activity ID"></input></td>
-								<td><label>Since</label><input id="since" type="text"></input></td>
+								<td><label>Use Context Activities</label><input id="context" type="checkbox"></input></td>
+								
 							</tr>
 						</table>
 						<table id="advancedSearchTable" class="searchBoxTable" style="display:none">
 							<tr>
+								<td><label>Since</label><input id="since" type="text" placeholder="YYYY-MM-ddTHH:mm:ss.SSS"></input></td>
+								<td><label>Until</label><input id="until" type="text" placeholder="YYYY-MM-ddTHH:mm:ss.SSS"></input></td>
 								<td><label>Registration</label><input id="registration" type="text" placeholder="TinCan Registration ID"></input></td>
-								<td><label>Until</label><input id="until" type="text"></input></td>
-								<td><label>Use Context Activities</label><input id="context" type="checkbox"></input></td>
+								<td><label>Authoritative Only</label><input id="authoritative" type="checkbox" checked="checked"></input></td>
 							</tr>
 							<tr>
 								<td><label>Actor JSON</label><input id="actorJson" type="text" placeholder="Actor JSON"></input></td>
 								<td><label>Object JSON</label><input id="objectJson" type="text" placeholder="Object JSON"></input></td>
 								<td><label>Instructor JSON</label><input id="instructorJson" type="text" placeholder="Instructor JSON"></input></td>
+								<td><label>Sparse</label><input id="sparse" type="checkbox"></input></td>
 							</tr>
 						</table>
-						<button id="showAdvancedOptions">Show Advanced Options</button>
+						
+						<div id="TCAPIQuery" style="display:none"><label>TCAPI Query</label><textarea readonly="true" id="TCAPIQueryText"></textarea></div>
+						
 						<button id='refreshStatements'>Refresh</button>
+						<button id="showAdvancedOptions">Show Advanced Options</button>
+						<button id="showQuery">Show TCAPI Query</button>
 					</div>
-				
 					
+					
+
 					<div id='theStatements'></div>
 					<button id='showAllStatements'>More...</button>
+					
+					
 				</li>
 			  
 				<li id="activities">
@@ -79,7 +88,7 @@
 			  	
 				<li id="actors">
 					<button id='refreshHighScores'>Refresh</button>
-					<div class="heading">Activities</div>
+					<div class="heading">Actors</div>
 					<div id='actorData' ></div>
 			  	</li>
 			

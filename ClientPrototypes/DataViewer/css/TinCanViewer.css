@@ -74,3 +74,5 @@ table#courseLocations td.metric {}
 #showAdvancedOptions:hover { 
 	background-color:#DDD;
 }*/
+
+#TCAPIQueryText { width: 80%; height:10px; }
