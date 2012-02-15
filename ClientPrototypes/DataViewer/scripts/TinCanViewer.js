@@ -88,7 +88,10 @@ function TinCanSearchHelper(){
 		else {
 			if(actorEmail != null){
 				actor = (actor == null) ? new Object() : actor;
-				actor["mbox"] = ["mailto:"+actorEmail];
+				if(actorEmail.indexOf('mailto:') == -1){
+					actorEmail = 'mailto:'+actorEmail;
+				}
+				actor["mbox"] = [actorEmail];
 			}
 			
 			if(actorAccount != null){
@@ -229,7 +232,16 @@ function RenderStatements(xhr){
 		if(actor === undefined){
 			return "";
 		}
-		return (actor.name !== undefined) ? actor.name[0] : actor.mbox[0];
+		if(actor.name !== undefined){
+			return actor.name[0];
+		}
+		if(actor.mbox !== undefined){
+			return actor.mbox[0];
+		}
+		if(actor.account !== undefined){
+			return actor.account[0].accountName;
+		}
+		return truncateString(JSON.stringify(actor), 20);
 	}
 	
 	function getTargetDesc(obj){
@@ -239,7 +251,6 @@ function RenderStatements(xhr){
 		
 		if(obj.definition !== undefined){
 			if(obj.definition.name !== undefined){
-				console.log(obj.definition.name["und"]);
 				if(obj.definition.name["und"] !== undefined){
 					return obj.definition.name["und"];
 				}
@@ -284,59 +295,65 @@ function RenderStatements(xhr){
 	}
 
 	for (i = 0; i < statements.length ; i++){
-		stmtStr.push("<tr class='statementRow'>");  
-		dt = TCDriver_DateFromISOString(statements[i].stored);
-		stmtStr.push("<td class='date'>"+ dt.toLocaleDateString() + " " + dt.toLocaleTimeString()  +"</td>");
-
 		var stmt = statements[i];
-		stmtStr.push("<td >");
-			stmtStr.push("<div class=\"statement\" tcid='" + stmt.id + "'>")
-				stmtStr.push("<span class='actor'>"+ getActorName(stmt.actor) +"</span>");
-		
-				var verb = stmt.verb;
-				var objDesc = getTargetDesc(stmt.object);
-				var answer = null;
-				
-				if (stmt.object.definition !== undefined){
-		            var activityType = stmt.object.definition.type;
-					if (activityType != undefined && (activityType == "question" || activityType == "interaction")){
-						if (stmt.result != undefined){
-							if (stmt.result.success != undefined){
-								verb = ((stmt.result.success)?"correctly ":"incorrectly ") + verb;
-							}
-							if (stmt.result.response != undefined){
-								answer = " with response '" + truncateString(stmt.result.response, 12) + "'.";
-							}
-						}
-						
-					}
-				}		
-				
-				stmtStr.push(" <span class='verb'>"+ stmt.verb +"</span>");
-				stmtStr.push(" <span class='object'>'"+ getTargetDesc(stmt.object) +"'</span>");
-				stmtStr.push((answer != "")? answer : ".");
-				
-				if (stmt.result != undefined){
-					if (stmt.result.score != undefined && stmt.result.score.raw != undefined){
-						stmtStr.push(" with score <span class='score'>"+ stmt.result.score.raw +"</span>");
-					}
-				}
-				
-			stmtStr.push("</div>");
-			
-			stmtStr.push("<div class='tc_rawdata' tcid_data='" + stmt.id + "'>");
-				stmtStr.push("<pre>" + JSON.stringify(stmt, null, 4) + "</pre>")
-			stmtStr.push("</div>");
-		
-		stmtStr.push("</td></tr>");
+		try {
+			stmtStr.push("<tr class='statementRow'>");  
+			dt = TCDriver_DateFromISOString(statements[i].stored);
+			stmtStr.push("<td class='date'>"+ dt.toLocaleDateString() + " " + dt.toLocaleTimeString()  +"</td>");
 
+			stmtStr.push("<td >");
+				stmtStr.push("<div class=\"statement unwired\" tcid='" + stmt.id + "'>")
+					stmtStr.push("<span class='actor'>"+ getActorName(stmt.actor) +"</span>");
+			
+					var verb = stmt.verb;
+					var objDesc = getTargetDesc(stmt.object);
+					var answer = null;
+					
+					if (stmt.object.definition !== undefined){
+			            var activityType = stmt.object.definition.type;
+						if (activityType != undefined && (activityType == "question" || activityType == "interaction")){
+							if (stmt.result != undefined){
+								if (stmt.result.success != undefined){
+									verb = ((stmt.result.success)?"correctly ":"incorrectly ") + verb;
+								}
+								if (stmt.result.response != undefined){
+									answer = " with response '" + truncateString(stmt.result.response, 12) + "'.";
+								}
+							}
+							
+						}
+					}		
+					
+					stmtStr.push(" <span class='verb'>"+ stmt.verb +"</span>");
+					stmtStr.push(" <span class='object'>'"+ getTargetDesc(stmt.object) +"'</span>");
+					stmtStr.push((answer != "")? answer : ".");
+					
+					if (stmt.result != undefined){
+						if (stmt.result.score != undefined && stmt.result.score.raw != undefined){
+							stmtStr.push(" with score <span class='score'>"+ stmt.result.score.raw +"</span>");
+						}
+					}
+					
+				stmtStr.push("</div>");
+				
+				stmtStr.push("<div class='tc_rawdata' tcid_data='" + stmt.id + "'>");
+					stmtStr.push("<pre>" + JSON.stringify(stmt, null, 4) + "</pre>")
+				stmtStr.push("</div>");
+			
+			stmtStr.push("</td></tr>");
+		}
+		catch (error){
+			TCDriver_Log("Error occurred while trying to display statement with id " + stmt.id + ": " + error.message);
+		}
 	}
 	stmtStr.push("</table>");
 	
 	$("#theStatements").append(stmtStr.join(''));
-	$('div[tcid]').click(function(){
+	var unwiredDivs = $('div[tcid].unwired');
+	unwiredDivs.click(function(){
 		$('[tcid_data="' + $(this).attr('tcid') + '"]').toggle();
 	});
+	unwiredDivs.removeClass('unwired');
 }
 
 
