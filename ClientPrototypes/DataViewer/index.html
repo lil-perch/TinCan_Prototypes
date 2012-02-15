@@ -52,8 +52,8 @@
 						</table>
 						<table id="advancedSearchTable" class="searchBoxTable" style="display:none">
 							<tr>
-								<td><label>Since</label><input id="since" type="text" placeholder="YYYY-MM-ddTHH:mm:ss.SSS"></input></td>
-								<td><label>Until</label><input id="until" type="text" placeholder="YYYY-MM-ddTHH:mm:ss.SSS"></input></td>
+								<td><label>Since</label><input id="since" type="text" placeholder="YYYY-MM-ddTHH:mm:ss.SSSZ"></input></td>
+								<td><label>Until</label><input id="until" type="text" placeholder="YYYY-MM-ddTHH:mm:ss.SSSZ"></input></td>
 								<td><label>Registration</label><input id="registration" type="text" placeholder="TinCan Registration ID"></input></td>
 								<td><label>Authoritative Only</label><input id="authoritative" type="checkbox" checked="checked"></input></td>
 							</tr>
@@ -81,15 +81,15 @@
 				</li>
 			  
 				<li id="activities">
-					<button id='refreshActivityData'>Refresh</button>
 					<div class="heading">Activities</div>
 					<div id='activityData' ></div>
+					<button id='refreshActivityData'>Refresh</button>
 				</li>
 			  	
 				<li id="actors">
-					<button id='refreshHighScores'>Refresh</button>
 					<div class="heading">Actors</div>
 					<div id='actorData' ></div>
+					<button id='refreshHighScores'>Refresh</button>
 			  	</li>
 			
 			  	<li id='lrsUtils'>

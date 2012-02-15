@@ -3,17 +3,17 @@
 .statement {margin:3px 0;}
 
 .statement table {width:100%;}
-.statement td {vertical-align:top;padding:2px;}
-.statement td.date{width:140px;}
+.statementRow td {vertical-align:top;padding:2px;}
+.statementRow td.date{width:140px;}
 
 
-.statement .date {font-size:.7em;color:#666666;}
+.statementRow .date {font-size:.7em;color:#666666;}
 .statement .actor {color:#222222;}
 .statement .verb {font-weight:bold;}
 .statement .object {color:#222222;}
 .statement .score {font-weight:bold;}
 
-tr.statement {cursor:pointer;}
+.statement {cursor:pointer;}
 .tc_rawdata{display:none;font-size:.8em;}
 
 #showAllStatements, #refreshHighScores {margin-top:20px;}
