@@ -314,7 +314,7 @@ function RenderStatements(xhr){
 			stmtStr.push("<tr class='statementRow'>");  
 			//dt = TCDriver_DateFromISOString(statements[i].stored);
 			//stmtStr.push("<td class='date'>"+ dt.toLocaleDateString() + " " + dt.toLocaleTimeString()  +"</td>");
-			stmtStr.push("<td class='date'>"+ stmt.stored.replace('Z','')  +"</td>");
+			stmtStr.push("<td class='date'><div class='statementDate'>"+ stmt.stored.replace('Z','')  +"</div></td>");
 
 			stmtStr.push("<td >");
 				stmtStr.push("<div class=\"statement unwired\" tcid='" + stmt.id + "'>")
@@ -339,7 +339,7 @@ function RenderStatements(xhr){
 						}
 					}		
 					
-					stmtStr.push(" <span class='verb'>"+ stmt.verb +"</span>");
+					stmtStr.push(" <span class='verb'>"+ verb +"</span>");
 					stmtStr.push(" <span class='object'>'"+ getTargetDesc(stmt.object) +"'</span>");
 					stmtStr.push((answer != "")? answer : ".");
 					
