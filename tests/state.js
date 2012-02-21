@@ -59,21 +59,34 @@ function clearStateTest(env, useRegistration) {
 	if (useRegistration) {
 		reg = '&registration=autoTestReg1';
 	}
-
-	env.util.request('GET', urlKey + reg, null, true, 404, 'Not Found', function () {
-		env.util.request('PUT', urlKey + reg, stateText, true, 204, 'No Content', function () {
-			env.util.request('GET', urlKey, null, true, useRegistration ? 404 : 200, useRegistration ? 'Not Found' : 'OK', function () {
-				env.util.request('GET', urlKey + reg, null, true, 200, 'OK', function (xhr) {
+	
+	async.series([function(callback) {  env.util.request ('GET', urlKey + reg + '&sequence=1', null, true, 404, 'Not Found', function (xhr) { callback(null, xhr) }) },
+			function(callback) {  env.util.request ('PUT', urlKey + reg  + '&sequence=2', stateText, true, 204, 'No Content', function (xhr) { callback(null, xhr) }) }, 
+			function(callback) {  env.util.request ('GET', urlKey + '&sequence=3', null, true, useRegistration ? 404 : 200, useRegistration ? 'Not Found' : 'OK', function (xhr) { callback(null, xhr) }) },
+			function(callback) {  env.util.request ('GET', urlKey + reg + '&sequence=4', null, true, 200, 'OK', function(xhr) {
+				equal(xhr.responseText, stateText);
+				callback(null, xhr);
+			})},
+			function(callback) {  env.util.request ('DELETE', url + reg + '&sequence=6', null, true, 204, 'No Content', function (xhr) { callback(null, xhr) }) },
+			function(callback) {  env.util.request ('GET', urlKey + reg + '&sequence=7', null, true, 404, 'Not Found', function (xhr) { callback(null, xhr) }) }],
+		function (err, results) {
+			start();
+		});
+	
+	/*env.util.request('GET', urlKey + reg + '&sequence=1', null, true, 404, 'Not Found', function (xhr) {
+		env.util.request('PUT', urlKey + reg  + '&sequence=2', stateText, true, 204, 'No Content', function (xhr) {
+			env.util.request('GET', urlKey + '&sequence=3', null, true, useRegistration ? 404 : 200, useRegistration ? 'Not Found' : 'OK', function (xhr) {
+				env.util.request('GET', urlKey + reg + '&sequence=4', null, true, 200, 'OK', function (xhr) {
 					equal(xhr.responseText, stateText);
-					env.util.request('DELETE', url + reg, null, true, 204, 'No Content', function () {
-						env.util.request('GET', urlKey + reg, null, true, 404, 'Not Found', function () {
+					env.util.request('DELETE', url + reg + '&sequence=6', null, true, 204, 'No Content', function (xhr) {
+						env.util.request('GET', urlKey + reg + '&sequence=7', null, true, 404, 'Not Found', function (xhr) {
 							start();
 						});
 					});
 				});
 			});
 		});
-	});
+	});*/
 }
 
 
