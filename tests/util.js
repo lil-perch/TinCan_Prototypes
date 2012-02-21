@@ -565,7 +565,7 @@ Util.prototype.DateFromISOString = function(string) {
     }
 
     offset -= date.getTimezoneOffset();
-    time = (Number(date) + (offset * 60 * 1000));
+    var time = (Number(date) + (offset * 60 * 1000));
 
     var dateToReturn = new Date();
     dateToReturn.setTime(Number(time));
