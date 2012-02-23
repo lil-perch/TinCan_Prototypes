@@ -1,6 +1,6 @@
 
-var GLOBAL_FIRST_STORED = null;
-var GLOBAL_MORE_STATEMENTS_URL = null;
+var GLOBAL_TC_FIRST_STORED = null;
+var GLOBAL_TC_MORE_STATEMENTS_URL = null;
 var GLOBAL_TC_AUTH = null;
 var GLOBAL_TC_ENDPOINT = null;
 
@@ -25,17 +25,19 @@ $(document).ready(function(){
 	$( "#since" ).datepicker();
 	$( "#until" ).datepicker()
 	
-	//TC_GetStatements(25,null,null,RenderStatements);
+	$("#statementsLoading").show();
+	$("#showAllStatements").hide();
 	TC_SearchStatements();
+	
 	$('#refreshStatements').click(function(){
+		$("#statementsLoading").show();
+		$("#showAllStatements").hide();
 		$("#theStatements").empty();
-		$("#showAllStatements").show();
 		TC_SearchStatements();
-		//TC_GetStatements(25,null,null,RenderStatements);
 	});
 	$('#showAllStatements').click(function(){
+		$("#statementsLoading").show();
 		TC_GetMoreStatements();
-		//TC_GetStatements(25,null,null,RenderStatements, true);
 	});
 	
 	$('#deleteAllData').click(function(){
@@ -145,11 +147,19 @@ function TinCanSearchHelper(){
 	};
 	
 	this.getSince = function(){
-		return this.getSearchVar("since");
+		var since = this.getSearchVar("since");
+		if(since != null && !this.dateStrIncludesTimeZone(since)){
+			since = since + "Z";
+		}
+		return since;
 	};
 	
 	this.getUntil = function(){
-		return this.getSearchVar("until");
+		var until = this.getSearchVar("until");
+		if(until != null && !this.dateStrIncludesTimeZone(until)){
+			until = until + "Z";
+		}
+		return until;
 	};
 	
 	this.getAuthoritative = function(){
@@ -168,6 +178,9 @@ function TinCanSearchHelper(){
 		return null;
 	};
 	
+	this.dateStrIncludesTimeZone = function(str){
+		return str != null && (str.indexOf("+") >= 0 || str.indexOf("Z") >= 0); 
+	};
 	
 	this.nonEmptyStringOrNull = function(str){
 		return (str != null && str.length > 0) ? str : null;
@@ -207,13 +220,14 @@ function TC_SearchStatements(){
 	
 	var url = TC_GetEndpoint() + "statements?" + queryObj.toString();
 	$("#TCAPIQueryText").text(url);
-	
+
 	TC_GetStatements(queryObj, RenderStatements);
 }
 
 function TC_GetMoreStatements(){
-	if (GLOBAL_MORE_STATEMENTS_URL !== null && GLOBAL_MORE_STATEMENTS_URL !== undefined){
-		var url = TC_GetEndpoint() + GLOBAL_MORE_STATEMENTS_URL.substr(1);
+	if (GLOBAL_TC_MORE_STATEMENTS_URL !== null && GLOBAL_TC_MORE_STATEMENTS_URL !== undefined){
+		$("#statementsLoading").show();
+		var url = TC_GetEndpoint() + GLOBAL_TC_MORE_STATEMENTS_URL.substr(1);
 		XHR_request(url, "GET", null, TC_GetAuth(), RenderStatements);
 	}
 }
@@ -290,9 +304,11 @@ function RenderStatements(xhr){
 	
 	var statementsResult = JSON.parse(xhr.responseText);
     var statements = statementsResult.statements;
-    GLOBAL_MORE_STATEMENTS_URL = statementsResult.more;
-    if(GLOBAL_MORE_STATEMENTS_URL === undefined || GLOBAL_MORE_STATEMENTS_URL === null){
+    GLOBAL_TC_MORE_STATEMENTS_URL = statementsResult.more;
+    if(GLOBAL_TC_MORE_STATEMENTS_URL === undefined || GLOBAL_TC_MORE_STATEMENTS_URL === null){
     	$("#showAllStatements").hide();
+    } else {
+    	$("#showAllStatements").show();
     }
 	
     var stmtStr = new Array();
@@ -303,8 +319,8 @@ function RenderStatements(xhr){
 	var aDate;
 
 	if (statements.length > 0) {
-		if (!GLOBAL_FIRST_STORED) {
-			GLOBAL_FIRST_STORED = statements[0].stored;
+		if (!GLOBAL_TC_FIRST_STORED) {
+			GLOBAL_TC_FIRST_STORED = statements[0].stored;
 		}
 	}
 
@@ -362,6 +378,8 @@ function RenderStatements(xhr){
 		}
 	}
 	stmtStr.push("</table>");
+	
+	$("#statementsLoading").hide();
 	
 	$("#theStatements").append(stmtStr.join(''));
 	var unwiredDivs = $('div[tcid].unwired');

@@ -65,17 +65,8 @@ table#courseLocations td.metric {}
 
 #searchBox { padding-bottom: 20px; }
 .searchBoxTable td { padding-right:14px; }
-/*#showAdvancedOptions { 
-	cursor:pointer; 
-	background-color:#EEE; 
-	width:160px; 
-	padding:4px; padding-left:8px; padding-right:8px;
-	border:1px solid #DDD; 
-	border-radius: 4px; -moz-border-radius: 4px; -webkit-border-radius: 4px;
-}
-#showAdvancedOptions:hover { 
-	background-color:#DDD;
-}*/
 
 #TCAPIQueryText { width: 80%; height:10px; }
 
+#statementsLoading { padding-left:20px; padding-top:10px; display:none; }
+#showAllStatements { display:none; }
