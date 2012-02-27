@@ -108,11 +108,12 @@ Util.prototype.requestWithHeaders = function (method, url, headers, data, useAut
     this.request(method, url, data, useAuth, expectedStatus, expectedStatusText, callback, headers);
 };
 
-Util.prototype.request = function (method, url, data, useAuth, expectedStatus, expectedStatusText, callback, extraHeaders) {
+Util.prototype.request = function (method, url, data, useAuth, expectedStatus, expectedStatusText, callback, extraHeaders, retries) {
 	"use strict";
 
     //Fill in some stock params if we need to
     var actorKey = null;
+
 	if (method === 'GET') {
 		actorKey = JSON.parse(JSON.stringify(this.actor)); // "clone"
 		delete actorKey.name; // remove name since it doesn't have the reverse functional property (not useful as part of the ID)
@@ -133,11 +134,18 @@ Util.prototype.request = function (method, url, data, useAuth, expectedStatus, e
     var contentType = "application/json";
     var contentLength = 0;
     if(data !== null){
-        var isFormData = false;
+        var isJson = true;
 	    try { JSON.parse(data); } 
-        catch (ex) { isFormData = true; }
+        catch (ex) { isJson = false; }
 
-        contentType = isFormData ? "application/x-www-form-urlencoded" : "application/json";
+		if (isJson) {
+			contentType = "application/json";
+		} else if (data.indexOf(" ") > -1) {
+			// spaces are invalid in "application/x-www-form-urlencoded", content type unknown
+			contentType = "application/octet-stream";
+		} else {
+			contentType = "application/x-www-form-urlencoded";
+		}
         contentLength = data.length;
     }
     
@@ -212,6 +220,21 @@ Util.prototype.request = function (method, url, data, useAuth, expectedStatus, e
         //Setup callback
 	    xhr.onreadystatechange = function () {
 	    	if (xhr.readyState === 4) {
+	    		if (retries == undefined) {
+	    			if (Config.retries !== undefined) {
+	    				retries = Config.retries;
+	    			} else {
+	    				retries = 3;
+	    			}
+	    			
+	    		}
+	    		// LRS internal errors (5xx) should be retried, may have a temporary failure.
+	    		if (retries > 0 && xhr.status >= 500 && expectedStatus !== xhr.status) {
+	    			var util = new Util();
+	    			util.log('retrying: ' + url + ' : ' + xhr.status);
+					setTimeout(function() {util.request(method, url, data, useAuth, expectedStatus, expectedStatusText, callback, extraHeaders, --retries)}, 100);
+					return;
+	    		}
 	    		if (expectedStatus !== undefined && expectedStatusText !== undefined && expectedStatus !== null && expectedStatusText !== null) {
 	    			equal(xhr.status.toString() + ' : ' + xhr.statusText, expectedStatus.toString() + ' : ' + expectedStatusText, method + ': ' + url + ' (status)');
 	    		}
@@ -565,7 +588,7 @@ Util.prototype.DateFromISOString = function(string) {
     }
 
     offset -= date.getTimezoneOffset();
-    time = (Number(date) + (offset * 60 * 1000));
+    var time = (Number(date) + (offset * 60 * 1000));
 
     var dateToReturn = new Date();
     dateToReturn.setTime(Number(time));
