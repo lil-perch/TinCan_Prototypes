@@ -1,69 +1,35 @@
 
-var GLOBAL_TC_FIRST_STORED = null;
-var GLOBAL_TC_MORE_STATEMENTS_URL = null;
-var GLOBAL_TC_AUTH = null;
-var GLOBAL_TC_ENDPOINT = null;
+var TINCAN = (TINCAN || {});
 
-function TC_GetAuth(){
-	if(GLOBAL_TC_AUTH == null){
-		GLOBAL_TC_AUTH = 'Basic ' + Base64.encode(Config.authUser + ':' + Config.authPassword);
+TINCAN.Viewer = function(){ 
+	this.firstStored = null;
+	this.moreStatementsUrl = null;
+	this.auth = null;
+	this.endpoint = null;
+	this.includeRawData = true;
+};
+
+TINCAN.Viewer.prototype.getCallback = function(callback){
+	var self = this;
+	return function(){ callback.apply(self, arguments); };
+};
+
+TINCAN.Viewer.prototype.getAuth = function(){ 
+	if(this.auth == null){
+		this.auth = 'Basic ' + Base64.encode(Config.authUser + ':' + Config.authPassword);
 	}
-	return GLOBAL_TC_AUTH;
-}
+	return this.auth;
+};
 
-function TC_GetEndpoint(){
-	if(GLOBAL_TC_ENDPOINT == null){
-		GLOBAL_TC_ENDPOINT = Config.endpoint;
+TINCAN.Viewer.prototype.getEndpoint = function(){
+	if(this.endpoint == null){
+		this.endpoint = Config.endpoint;
 	}
-	return GLOBAL_TC_ENDPOINT;
-}
+	return this.endpoint;
+};
 
 
-$(document).ready(function(){
-
-	$.datepicker.setDefaults( {dateFormat: "yy-mm-dd", constrainInput: false} );
-	$( "#since" ).datepicker();
-	$( "#until" ).datepicker()
-	
-	$("#statementsLoading").show();
-	$("#showAllStatements").hide();
-	TC_SearchStatements();
-	
-	$('#refreshStatements').click(function(){
-		$("#statementsLoading").show();
-		$("#showAllStatements").hide();
-		$("#theStatements").empty();
-		TC_SearchStatements();
-	});
-	$('#showAllStatements').click(function(){
-		$("#statementsLoading").show();
-		TC_GetMoreStatements();
-	});
-	
-	$('#deleteAllData').click(function(){
-		if (confirm('Are you sure you wish to clear ALL of your LRS data?')){
-			TC_DeleteLRS();
-		}
-	});
-	
-	$("#showAdvancedOptions").click(function(){
-		$("#advancedSearchTable").toggle('slow', function(){
-			var visible = $("#advancedSearchTable").is(":visible");
-			var text = (visible ? "Hide" : "Show") + " Advanced Options";
-			$("#showAdvancedOptions").html(text);
-		});
-	});
-	
-	$("#showQuery").click(function(){
-		$("#TCAPIQuery").toggle('slow', function(){
-			var visible = $("#TCAPIQuery").is(":visible");
-			var text = (visible ? "Hide" : "Show") + " TCAPI Query";
-			$("#showQuery").html(text);
-		});
-	});
-});
-
-TinCanStatementQueryObject = function(){
+TINCAN.Viewer.prototype.TinCanStatementQueryObject = function(){
 	this.verb = null;
 	this.object = null;
 	this.registration = null;
@@ -92,7 +58,7 @@ TinCanStatementQueryObject = function(){
 	};
 };
 
-function TinCanSearchHelper(){
+TINCAN.Viewer.prototype.TinCanSearchHelper = function(){
 	this.getActor = function(){
 		var actor = null;
 		var actorJson = this.getSearchVar("actorJson");
@@ -199,12 +165,56 @@ function TinCanSearchHelper(){
 	};
 };
 
+TINCAN.Viewer.prototype.TinCanFormHelper = function(){
+	this.copyQueryStringToForm = function(){
+		var booleanVals = ["context", "authoritative", "sparse"];
+		var qsMap = this.getQueryStringMap();
+		for(var key in qsMap){
+			var inputType = ($.inArray(key, booleanVals) >= 0) ? "checkbox" : "text";
+			this.setInputFromQueryString(key, qsMap[key], inputType);
+		}
+	};
+	
+	this.setInputFromQueryString = function(name, val, inputType){
+		if(inputType == null){
+			inputType = "text";
+		}
+		if(val != null){
+			if(inputType == "text"){
+				$("#"+name).val(val);
+			}
+			else if (inputType == "checkbox"){
+				if(val == "true"){
+					$("#"+name).attr('checked', 'checked');
+				} else {
+					$("#"+name).removeAttr('checked');
+				}
+			}
+		};
+	};
+	
+	this.getQueryStringMap = function(){
+		var qs = window.location.search;
+		if(qs == null || qs.length < 1){
+			return [];
+		}
+		if(qs.indexOf("#") > 0){
+			qs = qs.substring(0, qs.indexOf("#"));
+		}
+		qs = qs.substring(1, qs.length);
+		var nameVals = qs.split("&");
+		var qsMap = {};
+		for(var i = 0; i < nameVals.length; i++){
+			var keyVal = nameVals[i].split("=");
+			qsMap[keyVal[0]] = decodeURIComponent(keyVal[1].replace(/\+/g, " "));
+		}
+		return qsMap;
+	};
+};
 
-
-
-function TC_SearchStatements(){
-	var helper = new TinCanSearchHelper(); 
-	var queryObj = new TinCanStatementQueryObject();
+TINCAN.Viewer.prototype.searchStatements = function(){
+	var helper = new this.TinCanSearchHelper(); 
+	var queryObj = new this.TinCanStatementQueryObject();
 
 	queryObj.actor = helper.getActor();
 	queryObj.verb = helper.getVerb();
@@ -218,44 +228,37 @@ function TC_SearchStatements(){
 	queryObj.instructor = helper.getInstructor();
 	queryObj.limit = 25;
 	
-	var url = TC_GetEndpoint() + "statements?" + queryObj.toString();
+	var url = this.getEndpoint() + "statements?" + queryObj.toString();
 	$("#TCAPIQueryText").text(url);
 
-	TC_GetStatements(queryObj, RenderStatements);
-}
+	this.getStatements(queryObj, this.getCallback(this.renderStatementsHandler));
+};
 
-function TC_GetMoreStatements(){
-	if (GLOBAL_TC_MORE_STATEMENTS_URL !== null && GLOBAL_TC_MORE_STATEMENTS_URL !== undefined){
+TINCAN.Viewer.prototype.getMoreStatements = function(){
+	if (this.moreStatementsUrl !== null){
 		$("#statementsLoading").show();
-		var url = TC_GetEndpoint() + GLOBAL_TC_MORE_STATEMENTS_URL.substr(1);
-		XHR_request(url, "GET", null, TC_GetAuth(), RenderStatements);
+		var url = this.getEndpoint() + this.moreStatementsUrl.substr(1);
+		XHR_request(url, "GET", null, this.getAuth(), this.getCallback(this.renderStatementsHandler));
 	}
-}
+};
 
-function TC_GetStatements(queryObj, callback){
-	var url = TC_GetEndpoint() + "statements?" + queryObj.toString();
-	XHR_request(url, "GET", null, TC_GetAuth(), callback);
-}
+TINCAN.Viewer.prototype.getStatements = function(queryObj, callback){
+	var url = this.getEndpoint() + "statements?" + queryObj.toString();
+	XHR_request(url, "GET", null, this.getAuth(), callback);
+};
 
-function TC_GetActivityProfile (activityId, profileKey, callbackFunction) {
-		var url = TC_GetEndpoint() + "activities/profile?activityId=<activity ID>&profileId=<profilekey>";
-		
+TINCAN.Viewer.prototype.getActivityProfile = function(activityId, profileKey, callbackFunction) {
+		var url = this.getEndpoint() + "activities/profile?activityId=<activity ID>&profileId=<profilekey>";
 		url = url.replace('<activity ID>',encodeURIComponent(activityId));
 		url = url.replace('<profilekey>',encodeURIComponent(profileKey));
-		
-		XHR_request(url, "GET", null, TC_GetAuth(), callbackFunction, true);
-}
+		XHR_request(url, "GET", null, this.getAuth(), callbackFunction, true);
+};
 
-function TC_DeleteLRS(){
+TINCAN.Viewer.prototype.renderStatementsHandler = function(xhr){
+	this.renderStatements(JSON.parse(xhr.responseText));
+};
 
-	var url = TC_GetEndpoint();
-	XHR_request(url, "DELETE", null, TC_GetAuth(), function () {
-		window.location = window.location;
-	});
-}
-
-function RenderStatements(xhr){
-	
+TINCAN.Viewer.prototype.renderStatements = function(statementsResult){
 	function getActorName(actor){
 		if(actor === undefined){
 			return "";
@@ -302,10 +305,11 @@ function RenderStatements(xhr){
 		return str.substr(0, length-3)+'...';
 	};
 	
-	var statementsResult = JSON.parse(xhr.responseText);
+	
     var statements = statementsResult.statements;
-    GLOBAL_TC_MORE_STATEMENTS_URL = statementsResult.more;
-    if(GLOBAL_TC_MORE_STATEMENTS_URL === undefined || GLOBAL_TC_MORE_STATEMENTS_URL === null){
+    
+    this.moreStatementsUrl = statementsResult.more;
+    if(this.moreStatementsUrl === undefined || this.moreStatementsUrl === null){
     	$("#showAllStatements").hide();
     } else {
     	$("#showAllStatements").show();
@@ -319,9 +323,14 @@ function RenderStatements(xhr){
 	var aDate;
 
 	if (statements.length > 0) {
-		if (!GLOBAL_TC_FIRST_STORED) {
-			GLOBAL_TC_FIRST_STORED = statements[0].stored;
+		if (!this.firstStored) {
+			this.firstStored = statements[0].stored;
 		}
+	}
+	
+	if(statements.length == 0){
+		$("#statementsLoading").hide();
+		$("#noStatementsMessage").show();
 	}
 
 	for (i = 0; i < statements.length ; i++){
@@ -367,9 +376,11 @@ function RenderStatements(xhr){
 					
 				stmtStr.push("</div>");
 				
-				stmtStr.push("<div class='tc_rawdata' tcid_data='" + stmt.id + "'>");
-					stmtStr.push("<pre>" + JSON.stringify(stmt, null, 4) + "</pre>")
-				stmtStr.push("</div>");
+				if(this.includeRawData){
+					stmtStr.push("<div class='tc_rawdata' tcid_data='" + stmt.id + "'>");
+						stmtStr.push("<pre>" + JSON.stringify(stmt, null, 4) + "</pre>")
+					stmtStr.push("</div>");
+				}
 			
 			stmtStr.push("</td></tr>");
 		}
@@ -387,7 +398,50 @@ function RenderStatements(xhr){
 		$('[tcid_data="' + $(this).attr('tcid') + '"]').toggle();
 	});
 	unwiredDivs.removeClass('unwired');
-}
+};
+
+
+TINCAN.Viewer.prototype.pageInitialize = function(){
+	var tcViewer = this;
+	
+	$.datepicker.setDefaults( {dateFormat: "yy-mm-dd", constrainInput: false} );
+	$( "#since" ).datepicker();
+	$( "#until" ).datepicker()
+	
+	$("#statementsLoading").show();
+	$("#showAllStatements").hide();
+	$("#noStatementsMessage").hide();
+	
+	$('#refreshStatements').click(function(){
+		$("#statementsLoading").show();
+		$("#showAllStatements").hide();
+		$("#noStatementsMessage").hide();
+		$("#theStatements").empty();
+		tcViewer.searchStatements();
+	});
+	$('#showAllStatements').click(function(){
+		$("#statementsLoading").show();
+		tcViewer.getMoreStatements();
+	});
+	
+	$("#showAdvancedOptions").click(function(){
+		$("#advancedSearchTable").toggle('slow', function(){
+			var visible = $("#advancedSearchTable").is(":visible");
+			var text = (visible ? "Hide" : "Show") + " Advanced Options";
+			$("#showAdvancedOptions").html(text);
+		});
+	});
+	
+	$("#showQuery").click(function(){
+		$("#TCAPIQuery").toggle('slow', function(){
+			var visible = $("#TCAPIQuery").is(":visible");
+			var text = (visible ? "Hide" : "Show") + " TCAPI Query";
+			$("#showQuery").html(text);
+		});
+	});
+	
+	(new this.TinCanFormHelper()).copyQueryStringToForm();
+};
 
 
 

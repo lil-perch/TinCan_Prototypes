@@ -16,7 +16,7 @@
 .statement .score {font-weight:bold;}
 
 .statement {cursor:pointer;}
-.tc_rawdata{display:none;font-size:.8em;}
+.tc_rawdata{display:none; font-size:.8em; width:800px; word-wrap:break-word;}
 
 #showAllStatements, #refreshHighScores {margin-top:20px;}
 

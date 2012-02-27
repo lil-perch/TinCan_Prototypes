@@ -17,6 +17,14 @@
 		<script type="text/javascript" src="scripts/base64.js"></script>
 		<script type="text/javascript" src="scripts/TCDriver.js"></script>
 		<script type="text/javascript" src="scripts/TinCanViewer.js"></script>
+
+        <script type="text/javascript">
+            $(document).ready(function(){
+                TC_VIEWER = new TINCAN.Viewer();
+                TC_VIEWER.pageInitialize();
+                TC_VIEWER.searchStatements();
+            });
+        </script>
         
     </head>
     
